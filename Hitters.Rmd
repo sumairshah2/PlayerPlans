@@ -1,0 +1,131 @@
+---
+title: "Josh Bell Report"
+author: "Sumair Shah"
+date: "1/10/2021"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+**Load Packages
+```{r setup, include=FALSE}
+#pacman::p_load(tidyverse,dplyr,ggplot2,lubridate,skimr,mlogit,tidymodels,RSQLite,XML,RPostgreSQL,DBI,ggridges,plotly,htmlwidgets,CalledStrike,patchwork,gtable)
+# also manually install baseball r package and called strike package
+library(gridExtra)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(CalledStrike)
+library(grid)
+library(gtable)
+library(patchwork)
+library(htmlwidgets)
+require(devtools)
+install_github("BillPetti/baseballr")
+library(baseballr)
+library(DT)
+
+
+
+```
+```{r read in data from database, include = F}
+#pcon <- dbConnect(psql,dbname = "Shah",host = "127.0.0.1",port = 5433,user = 'postgres',password = "Boras21")
+#hit <- dbGetQuery(pcon,"SELECT * from fangraphs_hit")
+#chadwick <- dbGetQuery(pcon,"Select name_first,name_last,key_mlbam,key_bbref,key_fangraphs from chadwick where pro_played_first > 2000")
+##expected <- dbGetQuery(pcon,"Select * from savant_expected_hit")
+#pitch <- dbGetQuery(pcon,"select * from pitch_hit")
+# lets filter the year 
+#pitch$game_date <- lubridate::as_date(pitch$game_date)
+#pitch$season <- lubridate::year(pitch$game_date)
+
+#write.csv(barrels,"barrels.csv")
+#write.csv(hit,"hit.csv")
+#write.csv(recent_pitch,"recent_pitch.csv")
+
+```
+
+```{r join our data,include = T, echo = F}
+#filter relevant years
+#hit <- hit %>% filter(Season > 2015)
+
+#convert player id to numeric
+#hit$playerid <- as.numeric("playerid")
+#barrels <- barrels %>% inner_join(expected, by = c("player_id","year"))
+#barrels <- barrels %>% inner_join(chadwick,by = c("player_id" = "key_mlbam"))
+
+#convert season 
+#colnames(barrels)
+
+#barrels$Season <- as.numeric(barrels$Season)
+#hit$Season <- as.numeric(hit$Season)
+#barrels <- barrels %>% rename(Season = "year")
+#barrels <- barrels %>% unite(col = Name,first_name.x,last_name.y, sep= " ")
+
+#full stats 
+#create a sample of 2019 data
+#recent_pitch <- pitch %>% filter(season == 2019 | season == 2020)
+
+```
+
+
+```{r read in csv, include = FALSE}
+
+hit <- read_csv("Data/hit.csv")
+barrels <- read_csv("Data/barrels.csv")
+recent_pitch <- read_csv("Data/recent_pitch.csv")
+full_stats <- barrels %>% inner_join(hit,by = c("key_fangraphs" = "playerid","Season"))
+
+```
+
+```{r simple stats table,include=T, echo = F}
+library(DT)
+datatable(hit %>% filter(Name == "Josh Bell") %>% arrange(Season) %>% dplyr::select(Season,Name,Team,Age,G,AB,PA,H,`1B`,`2B`,`3B`,HR,R,RBI,BB,IBB,SO,OPS,SB,AVG,BB_pct,K_pct))
+```
+
+```{r advanced BIP stats table,include = T, echo = F}
+df <- barrels %>% filter(Name == "Josh Bell") %>% arrange(Season) %>%select(Season,Name,est_woba,woba,avg_hit_angle,avg_hit_speed, max_hit_speed,anglesweetspotpercent) %>% rename(`Launch Angle` = avg_hit_angle, `Max Exit Velocity` = max_hit_speed, WOBA = woba,`Sweet Spot` = anglesweetspotpercent,XWOBA = est_woba,`Avg Exit Velocity` = avg_hit_speed)
+datatable(df)
+```
+
+```{r plate discipline stats,include = T, echo = F}
+full_stats <- full_stats %>% rename(Name = Name.x)
+pd <- full_stats %>% filter(Name == "Josh Bell") %>% arrange(Season) %>% select(Season,Name,BB_pct,K_pct) %>% rename(`BB%` = BB_pct,`K%` = K_pct)
+datatable(pd)
+```
+
+```{r batted ball stats, include = T, echo = F}
+damage <- full_stats %>% filter(Name == "Josh Bell") %>% arrange(Season) %>% select(Season,Name,ISO,fbld,FB_pct,GB_FB,barrels,brl_percent,Hard_pct) %>% rename(`FB/LD` = fbld,`Flyball%` = FB_pct,`Barrel %` = brl_percent,Barrels = barrels,`hard hit %` = Hard_pct)
+
+datatable(damage)
+
+
+```
+
+
+```{r histograms of exit velocity,include=T,echo= F}
+recent_pitch$season <- as.factor(recent_pitch$season)
+# recent_pitch
+recent_pitch %>% filter(player_name == "Josh Bell") %>% 
+  ggplot(aes(x = launch_speed, color = season,fill = season)) +
+  geom_density(alpha = .3) + theme_bw() + xlab("Exit Velocity") + ggtitle("Josh Bell Exit Velocity Distribution") + theme(plot.title = element_text(hjust = 0.5)) 
+
+
+
+```
+
+
+```{r spray charts,include = T, echo = F }
+ggspraychart(recent_pitch %>% filter(player_name == "Josh Bell" & season == 2020),x_value = "hc_x",y_value = "-hc_y") + geom_point() + ggtitle('Josh Bell 2020 Spray Chart')
+
+
+```
+
+
+```{r heatmaps Expected WOBA, include=T, echo=F}
+CalledStrike::ewoba_contour(d = recent_pitch %>% filter(player_name == "Josh Bell"))
+```
+
+
+```{r heatmaps, include = T,echo= F}
+ewoba_plot(recent_pitch %>% filter(player_name == "Josh Bell" & season == 2020),title = "Josh Bell XWOBA 2020")
+```

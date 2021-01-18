@@ -1,0 +1,71 @@
+---
+title: "Blake Snell Report"
+author: "Sumair Shah"
+date: "1/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#pacman::p_load(tidyverse,dplyr,ggplot2,lubridate,skimr,mlogit,tidymodels,RSQLite,XML,RPostgreSQL,DBI,ggridges,plotly,htmlwidgets,CalledStrike,patchwork,gtable)
+# also manually install baseball r package and called strike package
+library(gridExtra)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(CalledStrike)
+library(grid)
+library(gtable)
+library(patchwork)
+library(htmlwidgets)
+require(devtools)
+install_github("BillPetti/baseballr")
+library(baseballr)
+```
+
+```{r read in data from database, include = F}
+#pcon <- dbConnect(psql,dbname = "Shah",host = "127.0.0.1",port = 5433,user = 'postgres',password = "Boras21")
+#fg_pitch <- dbGetQuery(pcon,"SELECT * from fangraphs_pitch")
+chadwick <- dbGetQuery(pcon,"Select name_first,name_last,key_mlbam,key_bbref,key_fangraphs from chadwick where pro_played_first > 2000")
+
+write.csv(fg_pitch,"fg_pitch.csv")
+pitch_data <- chadwick %>% inner_join(recent_pitch, by = c("key_mlbam"= "pitcher"))
+write_csv(pitch_data,"pitch_data.csv")
+```
+
+```{r read in from csv}
+#fangraphs pitching Data
+fg_pitch <- read_csv("Data/fg_pitch.csv")
+#recent pitch
+recent_pitch <- read_csv("Data/recent_pitch.csv")
+snell_2020 <- baseballr::pitcher_game_logs_fg(playerid = 13543,2020)
+snell_2019 <- baseballr::pitcher_game_logs_fg(playerid = 13543,2019)
+snell_2018 <- baseballr::pitcher_game_logs_fg(playerid = 13543,2018)
+snell_2017 <- baseballr::pitcher_game_logs_fg(playerid = 13543,2017)
+
+
+
+fg1 <- baseballr::fg_pitch_leaders(x = 2017,y = 2017,qual = 0) 
+fg2 <- baseballr::fg_pitch_leaders(x = 2018,y = 2018,qual = 0)
+fg3 <- baseballr::fg_pitch_leaders(x = 2019,y = 2019,qual = 0) 
+fg4 <- baseballr::fg_pitch_leaders(x = 2020,y = 2020,qual = 0) 
+
+fg_total <- rbind(fg1,fg2,fg3,fg4)
+
+```
+
+```{r simple_stats,include=F,echo =F}
+fg_pitch %>% rename(Season)
+simple_stats <- fg_total %>%filter(Name == "Blake Snell") %>% select(Seasons,Name,IP,Team,Age,W,L,ERA,FIP,G,GS,H,R,HR,BB,SO)
+datatable(simple_stats)
+
+
+
+
+
+
+```
+
+```{r pitch level data}
+
+
+```
